@@ -74,7 +74,7 @@ func TestDo(t *testing.T) {
 	err := rt.Handle(http.MethodPost, "/nodes/:key",
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var req Data
-			assert.Nil(t, httpx.Parse(r, &req))
+			assert.Nil(t, httpx.Parse(r, &req, false))
 		}))
 	assert.Nil(t, err)
 
@@ -111,7 +111,7 @@ func TestDo_Ptr(t *testing.T) {
 	err := rt.Handle(http.MethodPost, "/nodes/:key",
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var req Data
-			assert.Nil(t, httpx.Parse(r, &req))
+			assert.Nil(t, httpx.Parse(r, &req, false))
 			assert.Equal(t, "foo", req.Key)
 			assert.Equal(t, 10, req.Value)
 			assert.Equal(t, "my-header", req.Header)
@@ -196,7 +196,7 @@ func TestDo_Json(t *testing.T) {
 	err := rt.Handle(http.MethodPost, "/nodes/:key",
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var req Data
-			assert.Nil(t, httpx.Parse(r, &req))
+			assert.Nil(t, httpx.Parse(r, &req, false))
 		}))
 	assert.Nil(t, err)
 

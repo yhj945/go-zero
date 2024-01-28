@@ -35,6 +35,12 @@ type (
 		PrivateKeys []PrivateKeyConf
 	}
 
+	// AuthConf is a JWT config
+	AuthConf struct {
+		AccessSecret string `json:",optional,env=AUTH_SECRET"`
+		AccessExpire int64  `json:",optional,env=AUTH_EXPIRE"`
+	}
+
 	// A RestConf is a http service config.
 	// Why not name it as Conf, because we need to consider usage like:
 	//  type Config struct {
@@ -44,15 +50,15 @@ type (
 	// if with the name Conf, there will be two Conf inside Config.
 	RestConf struct {
 		service.ServiceConf
-		Host     string `json:",default=0.0.0.0"`
-		Port     int
+		Host     string `json:",default=0.0.0.0,env=API_HOST"`
+		Port     int    `json:",env=API_PORT"`
 		CertFile string `json:",optional"`
 		KeyFile  string `json:",optional"`
 		Verbose  bool   `json:",optional"`
 		MaxConns int    `json:",default=10000"`
 		MaxBytes int64  `json:",default=1048576"`
 		// milliseconds
-		Timeout      int64         `json:",default=3000"`
+		Timeout      int64         `json:",default=3000,env=API_TIMEOUT"`
 		CpuThreshold int64         `json:",default=900,range=[0:1000]"`
 		Signature    SignatureConf `json:",optional"`
 		// There are default values for all the items in Middlewares.

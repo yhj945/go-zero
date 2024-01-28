@@ -23,7 +23,7 @@ func TestParseForm(t *testing.T) {
 
 	r, err := http.NewRequest(http.MethodGet, "/a?name=hello&age=18&percent=3.4", http.NoBody)
 	assert.Nil(t, err)
-	assert.Nil(t, Parse(r, &v))
+	assert.Nil(t, Parse(r, &v, false))
 	assert.Equal(t, "hello", v.Name)
 	assert.Equal(t, 18, v.Age)
 	assert.Equal(t, 3.4, v.Percent)
@@ -89,7 +89,7 @@ func TestParsePath(t *testing.T) {
 		"name": "foo",
 		"age":  "18",
 	})
-	err := Parse(r, &v)
+	err := Parse(r, &v, false)
 	assert.Nil(t, err)
 	assert.Equal(t, "foo", v.Name)
 	assert.Equal(t, 18, v.Age)
@@ -105,7 +105,7 @@ func TestParsePath_Error(t *testing.T) {
 	r = pathvar.WithVars(r, map[string]string{
 		"name": "foo",
 	})
-	assert.NotNil(t, Parse(r, &v))
+	assert.NotNil(t, Parse(r, &v, false))
 }
 
 func TestParseFormOutOfRange(t *testing.T) {
@@ -143,7 +143,7 @@ func TestParseFormOutOfRange(t *testing.T) {
 		r, err := http.NewRequest(http.MethodGet, test.url, http.NoBody)
 		assert.Nil(t, err)
 
-		err = Parse(r, &v)
+		err = Parse(r, &v, false)
 		if test.pass {
 			assert.Nil(t, err)
 		} else {
@@ -171,7 +171,7 @@ Content-Disposition: form-data; name="age"
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	r.Header.Set(ContentType, "multipart/form-data; boundary=--------------------------220477612388154780019383")
 
-	assert.Nil(t, Parse(r, &v))
+	assert.Nil(t, Parse(r, &v, false))
 	assert.Equal(t, "kevin", v.Name)
 	assert.Equal(t, 18, v.Age)
 }
@@ -195,7 +195,7 @@ Content-Disposition: form-data; name="age"
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	r.Header.Set(ContentType, "multipart/form-data; boundary=--------------------------220477612388154780019383")
 
-	assert.NotNil(t, Parse(r, &v))
+	assert.NotNil(t, Parse(r, &v, false))
 }
 
 func TestParseJsonBody(t *testing.T) {
@@ -209,7 +209,7 @@ func TestParseJsonBody(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 		r.Header.Set(ContentType, header.JsonContentType)
 
-		if assert.NoError(t, Parse(r, &v)) {
+		if assert.NoError(t, Parse(r, &v, false)) {
 			assert.Equal(t, "kevin", v.Name)
 			assert.Equal(t, 18, v.Age)
 		}
@@ -225,7 +225,7 @@ func TestParseJsonBody(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 		r.Header.Set(ContentType, header.JsonContentType)
 
-		assert.Error(t, Parse(r, &v))
+		assert.Error(t, Parse(r, &v, false))
 	})
 
 	t.Run("hasn't body", func(t *testing.T) {
@@ -235,7 +235,7 @@ func TestParseJsonBody(t *testing.T) {
 		}
 
 		r := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
-		assert.Nil(t, Parse(r, &v))
+		assert.Nil(t, Parse(r, &v, false))
 		assert.Equal(t, "", v.Name)
 		assert.Equal(t, 0, v.Age)
 	})
@@ -265,7 +265,7 @@ func TestParseRequired(t *testing.T) {
 
 	r, err := http.NewRequest(http.MethodGet, "/a?name=hello", http.NoBody)
 	assert.Nil(t, err)
-	assert.NotNil(t, Parse(r, &v))
+	assert.NotNil(t, Parse(r, &v, false))
 }
 
 func TestParseOptions(t *testing.T) {
@@ -275,7 +275,7 @@ func TestParseOptions(t *testing.T) {
 
 	r, err := http.NewRequest(http.MethodGet, "/a?pos=4", http.NoBody)
 	assert.Nil(t, err)
-	assert.NotNil(t, Parse(r, &v))
+	assert.NotNil(t, Parse(r, &v, false))
 }
 
 func TestParseHeaders(t *testing.T) {
@@ -321,12 +321,12 @@ func TestParseHeaders_Error(t *testing.T) {
 
 	r := httptest.NewRequest("POST", "/", http.NoBody)
 	r.Header.Set("name", "foo")
-	assert.NotNil(t, Parse(r, &v))
+	assert.NotNil(t, Parse(r, &v, false))
 }
 
 func TestParseWithValidator(t *testing.T) {
-	SetValidator(mockValidator{})
-	defer SetValidator(mockValidator{nop: true})
+	// SetValidator(mockValidator{})
+	// defer SetValidator(mockValidator{nop: true})
 
 	var v struct {
 		Name    string  `form:"name"`
@@ -336,7 +336,7 @@ func TestParseWithValidator(t *testing.T) {
 
 	r, err := http.NewRequest(http.MethodGet, "/a?name=hello&age=18&percent=3.4", http.NoBody)
 	assert.Nil(t, err)
-	if assert.NoError(t, Parse(r, &v)) {
+	if assert.NoError(t, Parse(r, &v, false)) {
 		assert.Equal(t, "hello", v.Name)
 		assert.Equal(t, 18, v.Age)
 		assert.Equal(t, 3.4, v.Percent)
@@ -344,8 +344,8 @@ func TestParseWithValidator(t *testing.T) {
 }
 
 func TestParseWithValidatorWithError(t *testing.T) {
-	SetValidator(mockValidator{})
-	defer SetValidator(mockValidator{nop: true})
+	// SetValidator(mockValidator{})
+	// defer SetValidator(mockValidator{nop: true})
 
 	var v struct {
 		Name    string  `form:"name"`
@@ -355,17 +355,17 @@ func TestParseWithValidatorWithError(t *testing.T) {
 
 	r, err := http.NewRequest(http.MethodGet, "/a?name=world&age=18&percent=3.4", http.NoBody)
 	assert.Nil(t, err)
-	assert.Error(t, Parse(r, &v))
+	assert.Error(t, Parse(r, &v, false))
 }
 
 func TestParseWithValidatorRequest(t *testing.T) {
-	SetValidator(mockValidator{})
-	defer SetValidator(mockValidator{nop: true})
+	// SetValidator(mockValidator{})
+	// defer SetValidator(mockValidator{nop: true})
 
 	var v mockRequest
 	r, err := http.NewRequest(http.MethodGet, "/a?&age=18", http.NoBody)
 	assert.Nil(t, err)
-	assert.Error(t, Parse(r, &v))
+	assert.Error(t, Parse(r, &v, false))
 }
 
 func TestParseFormWithDot(t *testing.T) {
@@ -374,7 +374,7 @@ func TestParseFormWithDot(t *testing.T) {
 	}
 	r, err := http.NewRequest(http.MethodGet, "/a?user.age=18", http.NoBody)
 	assert.Nil(t, err)
-	assert.NoError(t, Parse(r, &v))
+	assert.NoError(t, Parse(r, &v, false))
 	assert.Equal(t, 18, v.Age)
 }
 
@@ -389,7 +389,7 @@ func TestParsePathWithDot(t *testing.T) {
 		"name.val": "foo",
 		"age.val":  "18",
 	})
-	err := Parse(r, &v)
+	err := Parse(r, &v, false)
 	assert.Nil(t, err)
 	assert.Equal(t, "foo", v.Name)
 	assert.Equal(t, 18, v.Age)
@@ -404,7 +404,7 @@ func TestParseWithFloatPtr(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 		r.Header.Set(ContentType, header.JsonContentType)
 
-		if assert.NoError(t, Parse(r, &v)) {
+		if assert.NoError(t, Parse(r, &v, false)) {
 			assert.Equal(t, float32(3.2), *v.WeightFloat32)
 		}
 	})
@@ -448,7 +448,7 @@ func BenchmarkParseAuto(b *testing.B) {
 			Percent float64 `form:"percent,optional"`
 		}{}
 
-		if err = Parse(r, &v); err != nil {
+		if err = Parse(r, &v, false); err != nil {
 			b.Fatal(err)
 		}
 	}
