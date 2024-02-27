@@ -4,15 +4,15 @@
 
 ```go
 type RestfulConf struct {
-  ServiceName  string        `json:",env=SERVICE_NAME"`  // read from env automatically
-	Host         string        `json:",default=0.0.0.0"`
-	Port         int
-	LogMode      string        `json:",options=[file,console]"`
-	Verbose      bool          `json:",optional"`
-	MaxConns     int           `json:",default=10000"`
-	MaxBytes     int64         `json:",default=1048576"`
-	Timeout      time.Duration `json:",default=3s"`
-	CpuThreshold int64         `json:",default=900,range=[0:1000)"`
+ServiceName  string        `json:",env=SERVICE_NAME"`  // read from env automatically
+Host         string        `json:",default=0.0.0.0"`
+Port         int
+LogMode      string        `json:",options=[file,console]"`
+Verbose      bool          `json:",optional"`
+MaxConns     int           `json:",default=10000"`
+MaxBytes     int64         `json:",default=1048576"`
+Timeout      time.Duration `json:",default=3s"`
+CpuThreshold int64         `json:",default=900,range=[0:1000)"`
 }
 ```
 
@@ -48,7 +48,7 @@ conf.MustLoad(configFile, &config)
 // or handle the error on your own
 var config RestfulConf
 if err := conf.Load(configFile, &config); err != nil {
-  log.Fatal(err)
+log.Fatal(err)
 }
 
 // enable reading from environments

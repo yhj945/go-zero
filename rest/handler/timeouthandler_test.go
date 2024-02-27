@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/zeromicro/go-zero/core/logx/logtest"
 	"github.com/zeromicro/go-zero/rest/internal/response"
 )
@@ -115,7 +116,7 @@ func TestWithinTimeoutBadCode(t *testing.T) {
 func TestWithTimeoutTimedout(t *testing.T) {
 	timeoutHandler := TimeoutHandler(time.Millisecond)
 	handler := timeoutHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 100)
 		_, err := w.Write([]byte(`foo`))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
