@@ -12,6 +12,7 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	red "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stringx"
 )
@@ -1200,11 +1201,11 @@ func TestRedis_SortedSet(t *testing.T) {
 			})
 			assert.Nil(t, err)
 			assert.Equal(t, int64(2), val)
-			_, err = New(client.Addr, badType()).ZRevRangeWithScores("key", 1, 3)
+			_, err = New(client.Addr, badType()).ZrevrangeWithScores("key", 1, 3)
 			assert.NotNil(t, err)
-			_, err = client.ZRevRangeWithScores("key", 1, 3)
+			_, err = client.ZrevrangeWithScores("key", 1, 3)
 			assert.Nil(t, err)
-			_, err = client.ZRevRangeWithScoresCtx(context.Background(), "key", 1, 3)
+			_, err = client.ZrevrangeWithScoresCtx(context.Background(), "key", 1, 3)
 			assert.Nil(t, err)
 			pairs, err := client.ZrevrangeWithScores("key", 1, 3)
 			assert.Nil(t, err)
@@ -1429,12 +1430,12 @@ func TestRedis_SortedSet(t *testing.T) {
 		})
 
 		runOnRedisWithError(t, func(client *Redis) {
-			_, err := client.ZRevRangeWithScores("key", 1, 2)
+			_, err := client.ZrevrangeWithScores("key", 1, 2)
 			assert.Error(t, err)
 		})
 
 		runOnRedisWithError(t, func(client *Redis) {
-			_, err := client.ZRevRangeWithScoresByFloat("key", 1, 2)
+			_, err := client.ZrevrangeWithScoresByFloat("key", 1, 2)
 			assert.Error(t, err)
 		})
 
@@ -1491,11 +1492,11 @@ func TestRedis_SortedSetByFloat64(t *testing.T) {
 		_, err = New(client.Addr, badType()).ZscoreByFloat("key", "value1")
 		assert.Error(t, err)
 		_, _ = client.ZaddFloat("key", 10.346, "value2")
-		_, err = New(client.Addr, badType()).ZRevRangeWithScoresByFloat("key", 0, -1)
+		_, err = New(client.Addr, badType()).ZrevrangeWithScoresByFloat("key", 0, -1)
 		assert.NotNil(t, err)
-		_, err = client.ZRevRangeWithScoresByFloat("key", 0, -1)
+		_, err = client.ZrevrangeWithScoresByFloat("key", 0, -1)
 		assert.Nil(t, err)
-		_, err = client.ZRevRangeWithScoresByFloatCtx(context.Background(), "key", 0, -1)
+		_, err = client.ZrevrangeWithScoresByFloatCtx(context.Background(), "key", 0, -1)
 		assert.Nil(t, err)
 		pairs, err := client.ZrevrangeWithScoresByFloat("key", 0, -1)
 		assert.Nil(t, err)
@@ -1804,8 +1805,10 @@ func TestRedisGeo(t *testing.T) {
 	t.Run("geo", func(t *testing.T) {
 		runOnRedis(t, func(client *Redis) {
 			client.Ping()
-			geoLocation := []*GeoLocation{{Longitude: 13.361389, Latitude: 38.115556, Name: "Palermo"},
-				{Longitude: 15.087269, Latitude: 37.502669, Name: "Catania"}}
+			geoLocation := []*GeoLocation{
+				{Longitude: 13.361389, Latitude: 38.115556, Name: "Palermo"},
+				{Longitude: 15.087269, Latitude: 37.502669, Name: "Catania"},
+			}
 			v, err := client.GeoAdd("sicily", geoLocation...)
 			assert.Nil(t, err)
 			assert.Equal(t, int64(2), v)
