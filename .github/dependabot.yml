@@ -16,8 +16,8 @@ updates:
   - package-ecosystem: "gomod" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "daily"
+      interval: "weekly"
   - package-ecosystem: "gomod" # See documentation for possible values
-    directory: "/tools/goctl" # Location of package manifests
+    directory: "/tools/goctl/" # Location of package manifests
     schedule:
-      interval: "daily"
+      interval: "weekly"
