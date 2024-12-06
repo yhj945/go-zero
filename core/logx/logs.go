@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"reflect"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -50,6 +51,26 @@ type (
 		rotationRule          string
 	}
 )
+
+// AddWriter adds a new writer.
+// If there is already a writer, the new writer will be added to the writer chain.
+// For example, to write logs to both file and console, if there is already a file writer,
+// ```go
+// logx.AddWriter(logx.NewWriter(os.Stdout))
+// ```
+func AddWriter(w Writer) {
+	ow := Reset()
+	if ow == nil {
+		SetWriter(w)
+	} else {
+		// no need to check if the existing writer is a comboWriter,
+		// because it is not common to add more than one writer.
+		// even more than one writer, the behavior is the same.
+		SetWriter(comboWriter{
+			writers: []Writer{ow, w},
+		})
+	}
+}
 
 // Alert alerts v in alert level, and the message is written to error log.
 func Alert(v string) {
@@ -153,11 +174,11 @@ func Errorw(msg string, fields ...LogField) {
 func Field(key string, value any) LogField {
 	switch val := value.(type) {
 	case error:
-		return LogField{Key: key, Value: val.Error()}
+		return LogField{Key: key, Value: encodeError(val)}
 	case []error:
 		var errs []string
 		for _, err := range val {
-			errs = append(errs, err.Error())
+			errs = append(errs, encodeError(err))
 		}
 		return LogField{Key: key, Value: errs}
 	case time.Duration:
@@ -175,11 +196,11 @@ func Field(key string, value any) LogField {
 		}
 		return LogField{Key: key, Value: times}
 	case fmt.Stringer:
-		return LogField{Key: key, Value: val.String()}
+		return LogField{Key: key, Value: encodeStringer(val)}
 	case []fmt.Stringer:
 		var strs []string
 		for _, str := range val {
-			strs = append(strs, str.String())
+			strs = append(strs, encodeStringer(str))
 		}
 		return LogField{Key: key, Value: strs}
 	default:
@@ -271,6 +292,10 @@ func SetUp(c LogConf) (err error) {
 
 		if len(c.TimeFormat) > 0 {
 			timeFormat = c.TimeFormat
+		}
+
+		if len(c.FileTimeFormat) > 0 {
+			fileTimeFormat = c.FileTimeFormat
 		}
 
 		atomic.StoreUint32(&maxContentLength, c.MaxContentLength)
@@ -412,6 +437,32 @@ func createOutput(path string) (io.WriteCloser, error) {
 	}
 
 	return NewLogger(path, rule, options.gzipEnabled)
+}
+
+func encodeError(err error) (ret string) {
+	return encodeWithRecover(err, func() string {
+		return err.Error()
+	})
+}
+
+func encodeStringer(v fmt.Stringer) (ret string) {
+	return encodeWithRecover(v, func() string {
+		return v.String()
+	})
+}
+
+func encodeWithRecover(arg any, fn func() string) (ret string) {
+	defer func() {
+		if err := recover(); err != nil {
+			if v := reflect.ValueOf(arg); v.Kind() == reflect.Ptr && v.IsNil() {
+				ret = nilAngleString
+			} else {
+				ret = fmt.Sprintf("panic: %v", err)
+			}
+		}
+	}()
+
+	return fn()
 }
 
 func getWriter() Writer {

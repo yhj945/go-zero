@@ -90,6 +90,18 @@ type (
 	StringCmd = red.StringCmd
 	// Script is an alias of redis.Script.
 	Script = red.Script
+
+	// Hook is an alias of redis.Hook.
+	Hook = red.Hook
+	// DialHook is an alias of redis.DialHook.
+	DialHook = red.DialHook
+	// ProcessHook is an alias of redis.ProcessHook.
+	ProcessHook = red.ProcessHook
+	// ProcessPipelineHook is an alias of redis.ProcessPipelineHook.
+	ProcessPipelineHook = red.ProcessPipelineHook
+
+	// Cmder is an alias of redis.Cmder.
+	Cmder = red.Cmder
 )
 
 // MustNewRedis returns a Redis with given options.
@@ -1185,6 +1197,18 @@ func (s *Redis) PipelinedCtx(ctx context.Context, fn func(Pipeliner) error) erro
 	return err
 }
 
+func (s *Redis) Publish(channel string, message interface{}) (int64, error) {
+	return s.PublishCtx(context.Background(), channel, message)
+}
+
+func (s *Redis) PublishCtx(ctx context.Context, channel string, message interface{}) (int64, error) {
+	conn, err := getRedis(s)
+	if err != nil {
+		return 0, err
+	}
+	return conn.Publish(ctx, channel, message).Result()
+}
+
 // Rpop is the implementation of redis rpop command.
 func (s *Redis) Rpop(key string) (string, error) {
 	return s.RpopCtx(context.Background(), key)
@@ -1233,6 +1257,18 @@ func (s *Redis) RpushCtx(ctx context.Context, key string, values ...any) (int, e
 	}
 
 	return int(v), nil
+}
+
+func (s *Redis) RPopLPush(source string, destination string) (string, error) {
+	return s.RPopLPushCtx(context.Background(), source, destination)
+}
+
+func (s *Redis) RPopLPushCtx(ctx context.Context, source string, destination string) (string, error) {
+	conn, err := getRedis(s)
+	if err != nil {
+		return "", err
+	}
+	return conn.RPopLPush(ctx, source, destination).Result()
 }
 
 // Sadd is the implementation of redis sadd command.
@@ -1631,6 +1667,26 @@ func (s *Redis) TtlCtx(ctx context.Context, key string) (int, error) {
 	// -2 means key does not exist
 	// -1 means key exists but has no expire
 	return int(duration), nil
+}
+
+func (s *Redis) TxPipeline() (pipe Pipeliner, err error) {
+	conn, err := getRedis(s)
+	if err != nil {
+		return nil, err
+	}
+	return conn.TxPipeline(), nil
+}
+
+func (s *Redis) Unlink(keys ...string) (int64, error) {
+	return s.UnlinkCtx(context.Background(), keys...)
+}
+
+func (s *Redis) UnlinkCtx(ctx context.Context, keys ...string) (int64, error) {
+	conn, err := getRedis(s)
+	if err != nil {
+		return 0, err
+	}
+	return conn.Unlink(ctx, keys...).Result()
 }
 
 // Zadd is the implementation of redis zadd command.
@@ -2363,16 +2419,16 @@ func WithTLS() Option {
 	}
 }
 
-// withHook customizes the given Redis with given durationHook, only for private use now,
+// WithHook customizes the given Redis with given durationHook, only for private use now,
 // maybe expose later.
-func withHook(hook red.Hook) Option {
+func WithHook(hook Hook) Option {
 	return func(r *Redis) {
 		r.hooks = append(r.hooks, hook)
 	}
 }
 
 func acceptable(err error) bool {
-	return err == nil || errors.Is(err, red.Nil) || errors.Is(err, context.Canceled)
+	return err == nil || errorx.In(err, red.Nil, context.Canceled)
 }
 
 func getRedis(r *Redis) (RedisNode, error) {

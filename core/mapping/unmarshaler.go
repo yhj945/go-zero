@@ -50,6 +50,7 @@ type (
 
 	unmarshalOptions struct {
 		fillDefault  bool
+		fromArray    bool
 		fromString   bool
 		opaqueKeys   bool
 		canonicalKey func(key string) string
@@ -113,7 +114,8 @@ func (u *Unmarshaler) unmarshalValuer(m Valuer, v any, fullName string) error {
 	return u.unmarshalWithFullName(simpleValuer{current: m}, v, fullName)
 }
 
-func (u *Unmarshaler) fillMap(fieldType reflect.Type, value reflect.Value, mapValue any, fullName string) error {
+func (u *Unmarshaler) fillMap(fieldType reflect.Type, value reflect.Value,
+	mapValue any, fullName string) error {
 	if !value.CanSet() {
 		return errValueNotSettable
 	}
@@ -154,7 +156,8 @@ func (u *Unmarshaler) fillMapFromString(value reflect.Value, mapValue any) error
 	return nil
 }
 
-func (u *Unmarshaler) fillSlice(fieldType reflect.Type, value reflect.Value, mapValue any, fullName string) error {
+func (u *Unmarshaler) fillSlice(fieldType reflect.Type, value reflect.Value,
+	mapValue any, fullName string) error {
 	if !value.CanSet() {
 		return errValueNotSettable
 	}
@@ -307,7 +310,34 @@ func (u *Unmarshaler) fillSliceWithDefault(derefedType reflect.Type, value refle
 	return u.fillSlice(derefedType, value, slice, fullName)
 }
 
-func (u *Unmarshaler) generateMap(keyType, elemType reflect.Type, mapValue any, fullName string) (reflect.Value, error) {
+func (u *Unmarshaler) fillUnmarshalerStruct(fieldType reflect.Type,
+	value reflect.Value, targetValue string) error {
+	if !value.CanSet() {
+		return errValueNotSettable
+	}
+
+	baseType := Deref(fieldType)
+	target := reflect.New(baseType)
+	switch u.key {
+	case jsonTagKey:
+		unmarshaler, ok := target.Interface().(json.Unmarshaler)
+		if !ok {
+			return errUnsupportedType
+		}
+
+		if err := unmarshaler.UnmarshalJSON([]byte(targetValue)); err != nil {
+			return err
+		}
+	default:
+		return errUnsupportedType
+	}
+
+	value.Set(target)
+	return nil
+}
+
+func (u *Unmarshaler) generateMap(keyType, elemType reflect.Type, mapValue any,
+	fullName string) (reflect.Value, error) {
 	mapType := reflect.MapOf(keyType, elemType)
 	valueType := reflect.TypeOf(mapValue)
 	if mapType == valueType {
@@ -397,6 +427,15 @@ func (u *Unmarshaler) generateMap(keyType, elemType reflect.Type, mapValue any, 
 	}
 
 	return targetValue, nil
+}
+
+func (u *Unmarshaler) implementsUnmarshaler(t reflect.Type) bool {
+	switch u.key {
+	case jsonTagKey:
+		return t.Implements(reflect.TypeOf((*json.Unmarshaler)(nil)).Elem())
+	default:
+		return false
+	}
 }
 
 func (u *Unmarshaler) parseOptionsWithContext(field reflect.StructField, m Valuer, fullName string) (
@@ -576,6 +615,8 @@ func (u *Unmarshaler) processFieldNotFromString(fieldType reflect.Type, value re
 		return u.fillSliceFromString(fieldType, value, mapValue, fullName)
 	case valueKind == reflect.String && derefedFieldType == durationType:
 		return fillDurationValue(fieldType, value, mapValue.(string))
+	case valueKind == reflect.String && typeKind == reflect.Struct && u.implementsUnmarshaler(fieldType):
+		return u.fillUnmarshalerStruct(fieldType, value, mapValue.(string))
 	default:
 		return u.processFieldPrimitive(fieldType, value, mapValue, opts, fullName)
 	}
@@ -771,6 +812,19 @@ func (u *Unmarshaler) processNamedField(field reflect.StructField, value reflect
 		return u.processNamedFieldWithoutValue(field.Type, value, opts, fullName)
 	}
 
+	if u.opts.fromArray {
+		fieldKind := field.Type.Kind()
+		if fieldKind != reflect.Slice && fieldKind != reflect.Array {
+			valueKind := reflect.TypeOf(mapValue).Kind()
+			if valueKind == reflect.Slice || valueKind == reflect.Array {
+				val := reflect.ValueOf(mapValue)
+				if val.Len() > 0 {
+					mapValue = val.Index(0).Interface()
+				}
+			}
+		}
+	}
+
 	return u.processNamedFieldWithValue(field.Type, value, valueWithParent{
 		value:  mapValue,
 		parent: valuer,
@@ -947,6 +1001,16 @@ func WithCanonicalKeyFunc(f func(string) string) UnmarshalOption {
 func WithDefault() UnmarshalOption {
 	return func(opt *unmarshalOptions) {
 		opt.fillDefault = true
+	}
+}
+
+// WithFromArray customizes an Unmarshaler with converting array values to non-array types.
+// For example, if the field type is []string, and the value is [hello],
+// the field type can be `string`, instead of `[]string`.
+// Typically, this option is used for unmarshaling from form values.
+func WithFromArray() UnmarshalOption {
+	return func(opt *unmarshalOptions) {
+		opt.fromArray = true
 	}
 }
 

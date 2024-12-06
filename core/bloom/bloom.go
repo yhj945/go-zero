@@ -2,6 +2,7 @@ package bloom
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"strconv"
 
@@ -17,19 +18,13 @@ var (
 	// ErrTooLargeOffset indicates the offset is too large in bitset.
 	ErrTooLargeOffset = errors.New("too large offset")
 
-	setScript = redis.NewScript(`
-for _, offset in ipairs(ARGV) do
-	redis.call("setbit", KEYS[1], offset, 1)
-end
-`)
-	testScript = redis.NewScript(`
-for _, offset in ipairs(ARGV) do
-	if tonumber(redis.call("getbit", KEYS[1], offset)) == 0 then
-		return false
-	end
-end
-return true
-`)
+	//go:embed setscript.lua
+	setLuaScript string
+	setScript    = redis.NewScript(setLuaScript)
+
+	//go:embed testscript.lua
+	testLuaScript string
+	testScript    = redis.NewScript(testLuaScript)
 )
 
 type (
@@ -110,7 +105,7 @@ func newRedisBitSet(store *redis.Redis, key string, bits uint) *redisBitSet {
 }
 
 func (r *redisBitSet) buildOffsetArgs(offsets []uint) ([]string, error) {
-	var args []string
+	args := make([]string, 0, len(offsets))
 
 	for _, offset := range offsets {
 		if offset >= r.bits {
