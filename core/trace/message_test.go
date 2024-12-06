@@ -69,6 +69,8 @@ func (m *mockSpan) TracerProvider() trace.TracerProvider {
 	return nil
 }
 
+func (m *mockSpan) AddLink(_ trace.Link) {}
+
 type mockMessage struct{}
 
 func (m mockMessage) ProtoReflect() protoreflect.Message {
