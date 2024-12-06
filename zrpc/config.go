@@ -22,16 +22,18 @@ type (
 
 	// A RpcClientConf is a rpc client config.
 	RpcClientConf struct {
-		Etcd          discov.EtcdConf `json:",optional,inherit"`
-		Endpoints     []string        `json:",optional"`
-		Target        string          `json:",optional"`
-		App           string          `json:",optional"`
-		Token         string          `json:",optional"`
-		NonBlock      bool            `json:",optional"`
-		Timeout       int64           `json:",default=2000"`
-		KeepaliveTime time.Duration   `json:",optional"`
-		Enabled       bool            `json:",default=true"`
-		Middlewares   ClientMiddlewaresConf
+		Etcd           discov.EtcdConf `json:",optional,inherit"`
+		Endpoints      []string        `json:",optional"`
+		Target         string          `json:",optional"`
+		App            string          `json:",optional"`
+		Token          string          `json:",optional"`
+		NonBlock       bool            `json:",optional"`
+		Timeout        int64           `json:",default=2000"`
+		KeepaliveTime  time.Duration   `json:",optional"`
+		Enabled        bool            `json:",default=true"`
+		Middlewares    ClientMiddlewaresConf
+		MaxRecvMsgSize int `json:",optional"` // 4194304, 4MB, default max receive message size in gRPC
+		MaxSendMsgSize int `json:",optional"` // 2147483647, math.MaxInt32, default max send message size in gRPC
 	}
 
 	// A RpcServerConf is a rpc server config.
@@ -50,6 +52,8 @@ type (
 		Middlewares ServerMiddlewaresConf
 		// setting specified timeout for gRPC method
 		MethodTimeouts []MethodTimeoutConf `json:",optional"`
+		MaxRecvMsgSize int                 `json:",optional"` // 4194304, 4MB, default max receive message size in gRPC
+		MaxSendMsgSize int                 `json:",optional"` // 2147483647, math.MaxInt32, default max send message size in gRPC
 	}
 )
 

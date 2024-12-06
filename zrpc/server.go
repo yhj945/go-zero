@@ -47,6 +47,13 @@ func NewServer(c RpcServerConf, register internal.RegisterFn) (*RpcServer, error
 	} else {
 		server = internal.NewRpcServer(c.ListenOn, serverOptions...)
 	}
+	// Add max msg size options.
+	if c.MaxRecvMsgSize > 0 {
+		server.AddOptions(grpc.MaxRecvMsgSize(c.MaxRecvMsgSize))
+	}
+	if c.MaxSendMsgSize > 0 {
+		server.AddOptions(grpc.MaxSendMsgSize(c.MaxSendMsgSize))
+	}
 
 	server.SetName(c.Name)
 	metrics.SetName(c.Name)

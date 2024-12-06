@@ -78,6 +78,17 @@ func NewClient(c RpcClientConf, options ...ClientOption) (Client, error) {
 			Time: c.KeepaliveTime,
 		})))
 	}
+	// Add max msg size options.
+	if c.MaxRecvMsgSize > 0 {
+		opts = append(opts, WithDialOption(grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(c.MaxRecvMsgSize),
+		)))
+	}
+	if c.MaxSendMsgSize > 0 {
+		opts = append(opts, WithDialOption(grpc.WithDefaultCallOptions(
+			grpc.MaxCallSendMsgSize(c.MaxSendMsgSize),
+		)))
+	}
 
 	opts = append(opts, options...)
 
