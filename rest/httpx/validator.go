@@ -112,7 +112,7 @@ func initSupportLanguages() {
 
 // 将验证函数注册到验证器
 func RegisterValidation(tag string, fn validator.Func) {
-	if err := customValidator.Validator.RegisterValidation(tag, fn); err != nil {
+	if err := xValidator.Validator.RegisterValidation(tag, fn); err != nil {
 		logx.Must(errors.Join(err, errors.New("failed to register the validation function, tag is "+tag)))
 	}
 }
@@ -120,12 +120,12 @@ func RegisterValidation(tag string, fn validator.Func) {
 // 将验证翻译注册到验证器
 func RegisterValidationTranslation(tag string, trans ut.Translator, registerFn validator.RegisterTranslationsFunc,
 	translationFn validator.TranslationFunc) {
-	if err := customValidator.Validator.RegisterTranslation(tag, trans, registerFn, translationFn); err != nil {
+	if err := xValidator.Validator.RegisterTranslation(tag, trans, registerFn, translationFn); err != nil {
 		logx.Must(errors.Join(err, errors.New("failed to register the validation translation, tag is "+tag)))
 	}
 }
 
 // 设置发生错误时验证器的错误代码
 func SetValidatorErrorCode(code int) {
-	customValidator.ErrorCode = code
+	xValidator.ErrorCode = code
 }
