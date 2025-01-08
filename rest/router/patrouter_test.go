@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/zeromicro/go-zero/rest/httpx"
 	"github.com/zeromicro/go-zero/rest/internal/header"
 	"github.com/zeromicro/go-zero/rest/pathvar"
@@ -169,7 +170,8 @@ func TestParseJsonPost(t *testing.T) {
 
 	router := NewRouter()
 	err = router.Handle(http.MethodPost, "/:name/:year", http.HandlerFunc(func(
-		w http.ResponseWriter, r *http.Request) {
+		w http.ResponseWriter, r *http.Request,
+	) {
 		v := struct {
 			Name     string `path:"name"`
 			Year     int    `path:"year"`
@@ -201,7 +203,8 @@ func TestParseJsonPostWithIntSlice(t *testing.T) {
 
 	router := NewRouter()
 	err = router.Handle(http.MethodPost, "/:name/:year", http.HandlerFunc(func(
-		w http.ResponseWriter, r *http.Request) {
+		w http.ResponseWriter, r *http.Request,
+	) {
 		v := struct {
 			Name  string  `path:"name"`
 			Year  int     `path:"year"`
@@ -516,28 +519,55 @@ func TestParsePtrInRequestEmpty(t *testing.T) {
 }
 
 func TestParseQueryOptional(t *testing.T) {
-	r, err := http.NewRequest(http.MethodGet, "http://hello.com/kevin/2017?nickname=whatever&zipcode=", nil)
-	assert.Nil(t, err)
+	t.Run("optional with string", func(t *testing.T) {
+		r, err := http.NewRequest(http.MethodGet, "http://hello.com/kevin/2017?nickname=whatever&zipcode=", nil)
+		assert.Nil(t, err)
 
-	router := NewRouter()
-	err = router.Handle(http.MethodGet, "/:name/:year", http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			v := struct {
-				Nickname string `form:"nickname"`
-				Zipcode  int64  `form:"zipcode,optional"`
-			}{}
+		router := NewRouter()
+		err = router.Handle(http.MethodGet, "/:name/:year", http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				v := struct {
+					Nickname string `form:"nickname"`
+					Zipcode  string `form:"zipcode,optional"`
+				}{}
 
-			err = httpx.Parse(r, &v, false)
-			assert.Nil(t, err)
-			_, err = io.WriteString(w, fmt.Sprintf("%s:%d", v.Nickname, v.Zipcode))
-			assert.Nil(t, err)
-		}))
-	assert.Nil(t, err)
+				err = httpx.Parse(r, &v, false)
+				assert.Nil(t, err)
+				_, err = io.WriteString(w, fmt.Sprintf("%s:%s", v.Nickname, v.Zipcode))
+				assert.Nil(t, err)
+			}))
+		assert.Nil(t, err)
 
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, r)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, r)
 
-	assert.Equal(t, "whatever:0", rr.Body.String())
+		assert.Equal(t, "whatever:", rr.Body.String())
+	})
+
+	t.Run("optional with int", func(t *testing.T) {
+		r, err := http.NewRequest(http.MethodGet, "http://hello.com/kevin/2017?nickname=whatever", nil)
+		assert.Nil(t, err)
+
+		router := NewRouter()
+		err = router.Handle(http.MethodGet, "/:name/:year", http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				v := struct {
+					Nickname string `form:"nickname"`
+					Zipcode  int    `form:"zipcode,optional"`
+				}{}
+
+				err = httpx.Parse(r, &v, false)
+				assert.Nil(t, err)
+				_, err = io.WriteString(w, fmt.Sprintf("%s:%d", v.Nickname, v.Zipcode))
+				assert.Nil(t, err)
+			}))
+		assert.Nil(t, err)
+
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, r)
+
+		assert.Equal(t, "whatever:0", rr.Body.String())
+	})
 }
 
 func TestParse(t *testing.T) {
@@ -778,7 +808,7 @@ func TestParseWithMissingForm(t *testing.T) {
 
 			err = httpx.Parse(r, &v, false)
 			assert.NotNil(t, err)
-			assert.Equal(t, `field "zipcode" is not set`, err.Error())
+			assert.Equal(t, "field \"location\" is not set", err.Error())
 		}))
 	assert.Nil(t, err)
 
